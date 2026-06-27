@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/logo.svg" alt="Graphene Logo" width="140">
+<img src="./assets/logo.svg" alt="Graphene Logo" width="180">
 
 # Graphene
 
