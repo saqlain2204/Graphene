@@ -52,7 +52,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── HEADER ── */
     #app-header {
       height: 48px;
       display: flex;
@@ -77,13 +76,23 @@
       letter-spacing: .04em;
     }
 
-    .logo-bracket {
-      color: var(--accent2);
-      opacity: .6;
+    .hdr-logo-link {
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .logo-text {
+    .hdr-logo-name {
+      font-size: 14px;
+      font-weight: 700;
       color: var(--text);
+      letter-spacing: -.01em;
+    }
+
+    .hdr-logo-name em {
+      color: var(--accent2);
+      font-style: normal;
     }
 
     .hdr-center {
@@ -140,13 +149,11 @@
       background: rgba(111, 92, 232, .07);
     }
 
-    /* ── LAYOUT ── */
     #app-body {
       display: flex;
       height: calc(100vh - 48px - 26px);
     }
 
-    /* ── SIDEBAR ── */
     #sidebar {
       width: var(--sidebar);
       flex-shrink: 0;
@@ -248,7 +255,6 @@
       letter-spacing: .03em;
     }
 
-    /* file tree */
     .tree-file,
     .tree-dir {
       display: flex;
@@ -304,7 +310,6 @@
       overflow: hidden;
     }
 
-    /* lang filter */
     .lang-item {
       display: flex;
       align-items: center;
@@ -341,7 +346,6 @@
       accent-color: var(--accent);
     }
 
-    /* edge toggles */
     .toggle-row {
       display: flex;
       align-items: center;
@@ -379,7 +383,6 @@
       background: repeating-linear-gradient(90deg, var(--amber) 0, var(--amber) 2px, transparent 2px, transparent 5px);
     }
 
-    /* hints */
     .sb-hints {
       padding: 4px 0 8px;
     }
@@ -402,7 +405,6 @@
       font-size: 10px;
     }
 
-    /* ── MAIN CANVAS ── */
     #graph-container {
       flex: 1;
       position: relative;
@@ -410,7 +412,6 @@
       overflow: hidden;
     }
 
-    /* Upload overlay */
     #upload-overlay {
       position: absolute;
       inset: 0;
@@ -483,7 +484,6 @@
       letter-spacing: .05em;
     }
 
-    /* Loading overlay */
     #loading-overlay {
       position: absolute;
       inset: 0;
@@ -536,14 +536,12 @@
       }
     }
 
-    /* Graph SVG */
     #graph-svg {
       width: 100%;
       height: 100%;
       display: block;
     }
 
-    /* Node/edge styles */
     .node {
       cursor: pointer;
     }
@@ -587,7 +585,6 @@
       stroke-width: 2px;
     }
 
-    /* Toolbar */
     #toolbar {
       position: absolute;
       bottom: 20px;
@@ -626,7 +623,6 @@
       margin: 2px 0;
     }
 
-    /* Context menu */
     #context-menu {
       position: fixed;
       background: var(--bg3);
@@ -660,7 +656,6 @@
       background: var(--border);
     }
 
-    /* ── RIGHT PANEL ── */
     #detail-panel {
       width: 340px;
       flex-shrink: 0;
@@ -931,7 +926,6 @@
       background: transparent !important;
     }
 
-    /* Status bar */
     #status-bar {
       height: 26px;
       display: flex;
@@ -957,7 +951,6 @@
       }
     }
 
-    /* scrollbar */
     ::-webkit-scrollbar {
       width: 3px;
       height: 3px;
@@ -980,13 +973,39 @@
 
 <body>
 
-  <!-- ═══ HEADER ═══ -->
+  <svg style="display:none">
+    <symbol id="graphene-logo" viewBox="0 0 32 32">
+      <g stroke="none">
+        <circle cx="16" cy="16" r="2.8" fill="#9d87f5" />
+        <circle cx="16" cy="7" r="2" fill="#6f5ce8" />
+        <circle cx="23.9" cy="11.5" r="2" fill="#6f5ce8" />
+        <circle cx="23.9" cy="20.5" r="2" fill="#6f5ce8" />
+        <circle cx="16" cy="25" r="2" fill="#6f5ce8" />
+        <circle cx="8.1" cy="20.5" r="2" fill="#6f5ce8" />
+        <circle cx="8.1" cy="11.5" r="2" fill="#6f5ce8" />
+        <line x1="16" y1="16" x2="16" y2="9" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="16" x2="22.5" y2="12" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="16" x2="22.5" y2="20" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="16" x2="16" y2="23" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="16" x2="9.5" y2="20" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="16" x2="9.5" y2="12" stroke="#9d87f5" stroke-width="1.2" opacity=".7" />
+        <line x1="16" y1="7" x2="23.9" y2="11.5" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+        <line x1="23.9" y1="11.5" x2="23.9" y2="20.5" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+        <line x1="23.9" y1="20.5" x2="16" y2="25" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+        <line x1="16" y1="25" x2="8.1" y2="20.5" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+        <line x1="8.1" y1="20.5" x2="8.1" y2="11.5" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+        <line x1="8.1" y1="11.5" x2="16" y2="7" stroke="#6f5ce8" stroke-width=".9" opacity=".4" />
+      </g>
+    </symbol>
+  </svg>
+
   <header id="app-header">
     <div class="hdr-left">
-      <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:6px">
-        <span class="logo-bracket">[</span>
-        <span class="logo-text">codebase.explorer</span>
-        <span class="logo-bracket">]</span>
+      <a href="index.html" class="hdr-logo-link">
+        <svg width="22" height="22" viewBox="0 0 32 32">
+          <use href="#graphene-logo" />
+        </svg>
+        <span class="hdr-logo-name">graph<em>ene</em></span>
       </a>
     </div>
     <div class="hdr-center" id="header-stats">
@@ -1003,10 +1022,8 @@
     </div>
   </header>
 
-  <!-- ═══ BODY ═══ -->
   <div id="app-body">
 
-    <!-- ── LEFT SIDEBAR ── -->
     <aside id="sidebar">
 
       <div class="sb-section" id="sb-search-section">
@@ -1071,10 +1088,8 @@
 
     </aside>
 
-    <!-- ── MAIN CANVAS ── -->
     <main id="graph-container">
 
-      <!-- Upload Overlay -->
       <div id="upload-overlay">
         <div id="drop-zone" tabindex="0">
           <div class="dz-art">
@@ -1110,7 +1125,6 @@
         </div>
       </div>
 
-      <!-- Loading Overlay -->
       <div id="loading-overlay" style="display:none">
         <div id="loading-box">
           <div class="loading-title">// parsing codebase</div>
@@ -1119,7 +1133,6 @@
         </div>
       </div>
 
-      <!-- Graph SVG -->
       <svg id="graph-svg">
         <defs>
           <marker id="arrow-imports" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
@@ -1139,7 +1152,6 @@
         </g>
       </svg>
 
-      <!-- Context Menu -->
       <div id="context-menu" style="display:none">
         <div class="ctx-item" id="ctx-focus">focus node</div>
         <div class="ctx-item" id="ctx-isolate">isolate neighbors</div>
@@ -1148,7 +1160,6 @@
         <div class="ctx-item ctx-danger" id="ctx-hide">hide node</div>
       </div>
 
-      <!-- Floating Toolbar -->
       <div id="toolbar">
         <button class="tb-btn" id="btn-zoom-in" title="zoom in">+</button>
         <button class="tb-btn" id="btn-zoom-out" title="zoom out">−</button>
@@ -1161,7 +1172,6 @@
 
     </main>
 
-    <!-- ── RIGHT DETAIL PANEL ── -->
     <aside id="detail-panel" class="panel-closed">
       <div id="panel-inner">
 
@@ -1209,10 +1219,9 @@
 
   </div>
 
-  <!-- ═══ STATUS BAR ═══ -->
   <div id="status-bar">
     <span id="status-text">ready</span>
-    <span id="status-right">// codebase.explorer</span>
+    <span id="status-right">// graphene</span>
   </div>
 
   <script type="module" src="src/main.js"></script>
