@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Graphene</title>
+  <meta name="description" content="Interactive knowledge graph for any codebase. Drop a folder, explore the graph." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet" />
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #07070d;
+      --bg2: #0c0c16;
+      --bg3: #101019;
+      --bg4: #131320;
+      --accent: #6f5ce8;
+      --accent2: #9d87f5;
+      --accent3: #c4b5fd;
+      --green: #10d4a0;
+      --amber: #e8970a;
+      --red: #f07070;
+      --text: #ddddf0;
+      --muted: #55556e;
+      --border: #18182a;
+      --border2: #212136;
+      --mono: 'JetBrains Mono', monospace;
+      --radius: 8px;
+      --sidebar: 236px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    #app-header {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      background: rgba(7, 7, 13, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .hdr-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+
+    .logo-bracket {
+      color: var(--accent2);
+      opacity: .6;
+    }
+
+    .logo-text {
+      color: var(--text);
+    }
+
+    .hdr-center {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-size: 11px;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity .35s;
+    }
+
+    .hdr-center.visible {
+      opacity: 1;
+    }
+
+    .stat-item {
+      color: var(--accent2);
+      font-weight: 500;
+    }
+
+    .stat-div {
+      color: var(--border2);
+    }
+
+    .hdr-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hdr-btn,
+    .hdr-home-btn {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 5px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color .15s, color .15s, background .15s;
+      letter-spacing: .03em;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .hdr-btn:hover,
+    .hdr-home-btn:hover {
+      border-color: var(--accent2);
+      color: var(--accent3);
+      background: rgba(111, 92, 232, .07);
+    }
+
+    /* ── LAYOUT ── */
+    #app-body {
+      display: flex;
+      height: calc(100vh - 48px - 26px);
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: var(--sidebar);
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sb-section {
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    .sb-section.collapsed .sb-section-body {
+      display: none;
+    }
+
+    .sb-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .14em;
+      padding: 9px 12px;
+      cursor: pointer;
+      user-select: none;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: color .15s;
+    }
+
+    .sb-label:hover {
+      color: var(--accent2);
+    }
+
+    #sb-tree-section {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #sb-tree-section .sb-section-body {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .sb-section-body {
+      padding: 6px 0;
+    }
+
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      margin: 4px 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      transition: border-color .15s;
+    }
+
+    .search-wrap:focus-within {
+      border-color: var(--accent);
+    }
+
+    .search-prefix {
+      color: var(--accent);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .search-wrap input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 11px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .search-wrap input::placeholder {
+      color: var(--muted);
+    }
+
+    .search-shortcut {
+      font-size: 9px;
+      color: var(--border2);
+      background: var(--bg4);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      letter-spacing: .03em;
+    }
+
+    /* file tree */
+    .tree-file,
+    .tree-dir {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: background .1s, color .1s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 3px 12px 3px 20px;
+    }
+
+    .tree-file:hover {
+      background: var(--bg3);
+      color: var(--text);
+    }
+
+    .tree-file.active {
+      background: rgba(111, 92, 232, .1);
+      color: var(--accent2);
+    }
+
+    .tree-file.search-nav-active {
+      background: rgba(157, 135, 245, .15);
+      color: var(--text);
+      outline: 1px solid rgba(157, 135, 245, .35);
+      outline-offset: -1px;
+    }
+
+    .tree-dir {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .tree-dir:hover {
+      background: var(--bg3);
+    }
+
+    .tree-icon {
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+
+    .tree-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-children {
+      overflow: hidden;
+    }
+
+    /* lang filter */
+    .lang-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color .15s;
+    }
+
+    .lang-item:hover {
+      color: var(--text);
+    }
+
+    .lang-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      border: 1px solid;
+      flex-shrink: 0;
+    }
+
+    .lang-count {
+      margin-left: auto;
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--bg3);
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .lang-checkbox {
+      accent-color: var(--accent);
+    }
+
+    /* edge toggles */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px;
+      font-size: 11px;
+      cursor: pointer;
+      color: var(--muted);
+      transition: color .15s;
+    }
+
+    .toggle-row:hover {
+      color: var(--text);
+    }
+
+    .toggle-row input {
+      accent-color: var(--accent);
+    }
+
+    .edge-dash {
+      width: 20px;
+      height: 2px;
+      flex-shrink: 0;
+    }
+
+    .edge-solid {
+      background: var(--accent2);
+    }
+
+    .edge-dashed {
+      background: repeating-linear-gradient(90deg, var(--green) 0, var(--green) 4px, transparent 4px, transparent 7px);
+    }
+
+    .edge-dotted {
+      background: repeating-linear-gradient(90deg, var(--amber) 0, var(--amber) 2px, transparent 2px, transparent 5px);
+    }
+
+    /* hints */
+    .sb-hints {
+      padding: 4px 0 8px;
+    }
+
+    .hint-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 12px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .key {
+      background: var(--bg4);
+      border: 1px solid var(--border2);
+      color: var(--text);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+
+    /* ── MAIN CANVAS ── */
+    #graph-container {
+      flex: 1;
+      position: relative;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* Upload overlay */
+    #upload-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      background: var(--bg);
+    }
+
+    #drop-zone {
+      width: 400px;
+      padding: 2.75rem 2.25rem;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      outline: none;
+    }
+
+    #drop-zone:hover,
+    #drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(111, 92, 232, .04);
+    }
+
+    .dz-art {
+      margin-bottom: 1.25rem;
+    }
+
+    .dz-title {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      margin-bottom: .45rem;
+      color: var(--text);
+    }
+
+    .dz-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .dz-sub kbd {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .dz-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .dz-tags span {
+      padding: 3px 10px;
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .05em;
+    }
+
+    /* Loading overlay */
+    #loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #loading-box {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 2rem 2.5rem;
+      min-width: 340px;
+    }
+
+    .loading-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent2);
+      letter-spacing: .1em;
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+    }
+
+    .load-stage {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 3px 0;
+      transition: color .2s;
+    }
+
+    .load-stage.active {
+      color: var(--green);
+    }
+
+    .loading-spinner {
+      margin-top: 1.25rem;
+      font-size: 18px;
+      color: var(--accent2);
+      animation: spin 1s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Graph SVG */
+    #graph-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Node/edge styles */
+    .node {
+      cursor: pointer;
+    }
+
+    .node.faded {
+      opacity: .12;
+    }
+
+    .node.selected circle {
+      stroke: var(--accent3) !important;
+      stroke-width: 2.5px !important;
+    }
+
+    .edge {
+      fill: none;
+      stroke-width: 1.2;
+      opacity: .45;
+      transition: opacity .2s, stroke-width .2s;
+    }
+
+    .edge-imports {
+      stroke: var(--accent2);
+    }
+
+    .edge-extends {
+      stroke: var(--green);
+      stroke-dasharray: 5 3;
+    }
+
+    .edge-calls {
+      stroke: var(--amber);
+      stroke-dasharray: 2 3;
+    }
+
+    .edge.faded {
+      opacity: .04;
+    }
+
+    .edge.highlighted {
+      opacity: 1;
+      stroke-width: 2px;
+    }
+
+    /* Toolbar */
+    #toolbar {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 20;
+    }
+
+    .tb-btn {
+      width: 34px;
+      height: 34px;
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 13px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+
+    .tb-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+      background: rgba(111, 92, 232, .08);
+    }
+
+    .tb-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+    /* Context menu */
+    #context-menu {
+      position: fixed;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      overflow: hidden;
+      z-index: 200;
+      min-width: 160px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .5), 0 0 0 1px rgba(255, 255, 255, .03);
+    }
+
+    .ctx-item {
+      padding: 8px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .1s, color .1s;
+    }
+
+    .ctx-item:hover {
+      background: var(--bg4);
+      color: var(--text);
+    }
+
+    .ctx-danger:hover {
+      color: var(--red);
+    }
+
+    .ctx-sep {
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── RIGHT PANEL ── */
+    #detail-panel {
+      width: 340px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: width .25s ease, opacity .25s ease;
+    }
+
+    #detail-panel.panel-closed {
+      width: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #detail-panel.panel-open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #panel-inner {
+      width: 340px;
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #panel-header {
+      padding: 1rem 1rem .85rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      flex-shrink: 0;
+      background: var(--bg3);
+    }
+
+    #panel-close {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      width: 24px;
+      height: 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s, color .15s;
+    }
+
+    #panel-close:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    #panel-filename {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      padding-right: 30px;
+    }
+
+    #panel-filepath {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: .6rem;
+      word-break: break-all;
+    }
+
+    #panel-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      background: var(--bg4);
+    }
+
+    .badge-lang {
+      border-color: currentColor;
+    }
+
+    #panel-stats-row {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      background: var(--bg3);
+    }
+
+    .stat-cell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: .65rem .25rem;
+      border-right: 1px solid var(--border);
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+
+    .stat-cell:last-child {
+      border-right: none;
+    }
+
+    .stat-cell-num {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent2);
+      letter-spacing: -.03em;
+      margin-bottom: 2px;
+    }
+
+    .panel-section {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-section.collapsed .panel-section-body {
+      display: none;
+    }
+
+    .panel-section-label {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: .14em;
+      padding: 8px 12px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: color .15s;
+    }
+
+    .panel-section-label:hover {
+      color: var(--accent2);
+    }
+
+    .panel-section-body {
+      padding: 6px 12px 10px;
+    }
+
+    .conn-item {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .conn-edge-type {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: rgba(111, 92, 232, .12);
+      color: var(--accent2);
+      flex-shrink: 0;
+      letter-spacing: .04em;
+    }
+
+    .why-item {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 5px 0;
+      line-height: 1.65;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .why-item:last-child {
+      border-bottom: none;
+    }
+
+    .why-item code {
+      color: var(--accent2);
+      background: rgba(111, 92, 232, .1);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    .why-item b {
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .sym-group {
+      margin-bottom: 6px;
+    }
+
+    .sym-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 4px 0;
+      cursor: pointer;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      transition: color .15s;
+    }
+
+    .sym-group-header:hover {
+      color: var(--text);
+    }
+
+    .sym-count {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+    }
+
+    .sym-items {
+      display: none;
+    }
+
+    .sym-items.expanded {
+      display: block;
+    }
+
+    .sym-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .sym-item-name {
+      color: var(--text);
+    }
+
+    .sym-item-line {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--bg3);
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    #panel-code-wrap {
+      overflow-x: auto;
+      background: var(--bg3);
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    #panel-code {
+      margin: 0;
+      padding: .75rem;
+      font-size: 11px;
+      line-height: 1.65;
+      background: transparent !important;
+    }
+
+    /* Status bar */
+    #status-bar {
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1rem;
+      background: var(--bg4);
+      border-top: 1px solid var(--border);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: .05em;
+      flex-shrink: 0;
+    }
+
+    #status-text::after {
+      content: '_';
+      animation: blink 1s steps(1) infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar {
+      width: 3px;
+      height: 3px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border2);
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ═══ HEADER ═══ -->
+  <header id="app-header">
+    <div class="hdr-left">
+      <a href="index.html" style="text-decoration:none;display:flex;align-items:center;gap:6px">
+        <span class="logo-bracket">[</span>
+        <span class="logo-text">codebase.explorer</span>
+        <span class="logo-bracket">]</span>
+      </a>
+    </div>
+    <div class="hdr-center" id="header-stats">
+      <span class="stat-item" id="stat-files">— files</span>
+      <span class="stat-div">/</span>
+      <span class="stat-item" id="stat-edges">— edges</span>
+      <span class="stat-div">/</span>
+      <span class="stat-item" id="stat-langs">— languages</span>
+    </div>
+    <div class="hdr-right">
+      <a href="index.html" class="hdr-home-btn">← home</a>
+      <button class="hdr-btn" id="btn-upload-new" style="display:none">new_project</button>
+      <button class="hdr-btn" id="btn-export" style="display:none">export</button>
+    </div>
+  </header>
+
+  <!-- ═══ BODY ═══ -->
+  <div id="app-body">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <aside id="sidebar">
+
+      <div class="sb-section" id="sb-search-section">
+        <div class="sb-label">// search</div>
+        <div class="sb-section-body">
+          <div class="search-wrap">
+            <span class="search-prefix">⌕</span>
+            <input type="text" id="search-input" placeholder="search files..." autocomplete="off" spellcheck="false" />
+            <span class="search-shortcut">^F</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-section" id="sb-tree-section">
+        <div class="sb-label">// file tree</div>
+        <div class="sb-section-body">
+          <div id="file-tree"></div>
+        </div>
+      </div>
+
+      <div class="sb-section" id="sb-lang-section">
+        <div class="sb-label">// languages</div>
+        <div class="sb-section-body">
+          <div id="lang-filter"></div>
+        </div>
+      </div>
+
+      <div class="sb-section" id="sb-edge-section">
+        <div class="sb-label">// edge types</div>
+        <div class="sb-section-body">
+          <div id="edge-filter">
+            <label class="toggle-row">
+              <input type="checkbox" id="toggle-imports" checked />
+              <span class="edge-dash edge-solid"></span>
+              <span>imports</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="toggle-extends" checked />
+              <span class="edge-dash edge-dashed"></span>
+              <span>extends</span>
+            </label>
+            <label class="toggle-row">
+              <input type="checkbox" id="toggle-calls" checked />
+              <span class="edge-dash edge-dotted"></span>
+              <span>calls</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sb-section" id="sb-info-section">
+        <div class="sb-label">// controls</div>
+        <div class="sb-section-body">
+          <div class="sb-hints">
+            <div class="hint-row"><span class="key">scroll</span><span>zoom</span></div>
+            <div class="hint-row"><span class="key">drag</span><span>pan</span></div>
+            <div class="hint-row"><span class="key">click</span><span>inspect</span></div>
+            <div class="hint-row"><span class="key">hover</span><span>highlight</span></div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ── MAIN CANVAS ── -->
+    <main id="graph-container">
+
+      <!-- Upload Overlay -->
+      <div id="upload-overlay">
+        <div id="drop-zone" tabindex="0">
+          <div class="dz-art">
+            <svg width="140" height="100" viewBox="0 0 140 100" fill="none" xmlns="http://www.w3.org/2000/svg"
+              style="display:block;margin:0 auto">
+              <rect x="12" y="28" width="116" height="66" rx="9" fill="#14142a" />
+              <rect x="10" y="30" width="116" height="64" rx="9" fill="#0f0f22" stroke="#6f5ce8" stroke-width="1.4" />
+              <rect x="10" y="22" width="44" height="14" rx="6" fill="#0f0f22" stroke="#6f5ce8" stroke-width="1.4" />
+              <rect x="11" y="31" width="114" height="2" rx="1" fill="#6f5ce8" opacity="0.08" />
+              <rect x="24" y="52" width="18" height="24" rx="3" fill="#18183a" stroke="#312f6a" stroke-width="1" />
+              <rect x="27" y="57" width="12" height="1.5" rx="1" fill="#6f5ce8" opacity="0.35" />
+              <rect x="27" y="61" width="9" height="1.5" rx="1" fill="#6f5ce8" opacity="0.25" />
+              <rect x="27" y="65" width="11" height="1.5" rx="1" fill="#6f5ce8" opacity="0.2" />
+              <rect x="46" y="56" width="18" height="20" rx="3" fill="#18183a" stroke="#312f6a" stroke-width="1" />
+              <rect x="49" y="61" width="12" height="1.5" rx="1" fill="#9d87f5" opacity="0.3" />
+              <rect x="49" y="65" width="8" height="1.5" rx="1" fill="#9d87f5" opacity="0.2" />
+              <circle cx="100" cy="62" r="22" fill="#0f0f22" stroke="#6f5ce8" stroke-width="1.6" />
+              <circle cx="100" cy="62" r="22" fill="#6f5ce8" opacity="0.08" />
+              <line x1="100" y1="70" x2="100" y2="52" stroke="#9d87f5" stroke-width="2.4" stroke-linecap="round" />
+              <path d="M91 60 L100 51 L109 60" fill="none" stroke="#9d87f5" stroke-width="2.4" stroke-linecap="round"
+                stroke-linejoin="round" />
+              <path d="M91 73 L109 73" stroke="#6f5ce8" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="dz-title">drop project folder</div>
+          <div class="dz-sub">or press <kbd>space</kbd> to browse</div>
+          <div class="dz-tags">
+            <span>js</span><span>ts</span><span>py</span><span>java</span>
+            <span>go</span><span>rs</span><span>cpp</span><span>cs</span>
+            <span>rb</span><span>php</span><span>swift</span><span>kt</span>
+          </div>
+          <input type="file" id="folder-input" webkitdirectory multiple style="display:none" />
+        </div>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div id="loading-overlay" style="display:none">
+        <div id="loading-box">
+          <div class="loading-title">// parsing codebase</div>
+          <div id="loading-stages"></div>
+          <div class="loading-spinner">◐</div>
+        </div>
+      </div>
+
+      <!-- Graph SVG -->
+      <svg id="graph-svg">
+        <defs>
+          <marker id="arrow-imports" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#9d87f5" />
+          </marker>
+          <marker id="arrow-extends" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#10d4a0" />
+          </marker>
+          <marker id="arrow-calls" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#e8970a" />
+          </marker>
+        </defs>
+        <g id="graph-root">
+          <g id="edges-layer"></g>
+          <g id="nodes-layer"></g>
+          <g id="labels-layer"></g>
+        </g>
+      </svg>
+
+      <!-- Context Menu -->
+      <div id="context-menu" style="display:none">
+        <div class="ctx-item" id="ctx-focus">focus node</div>
+        <div class="ctx-item" id="ctx-isolate">isolate neighbors</div>
+        <div class="ctx-item" id="ctx-pin">pin / unpin</div>
+        <div class="ctx-sep"></div>
+        <div class="ctx-item ctx-danger" id="ctx-hide">hide node</div>
+      </div>
+
+      <!-- Floating Toolbar -->
+      <div id="toolbar">
+        <button class="tb-btn" id="btn-zoom-in" title="zoom in">+</button>
+        <button class="tb-btn" id="btn-zoom-out" title="zoom out">−</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" id="btn-fit" title="fit all">fit</button>
+        <button class="tb-btn" id="btn-reset" title="reset layout">↺</button>
+        <div class="tb-sep"></div>
+        <button class="tb-btn" id="btn-fullscreen" title="fullscreen">⛶</button>
+      </div>
+
+    </main>
+
+    <!-- ── RIGHT DETAIL PANEL ── -->
+    <aside id="detail-panel" class="panel-closed">
+      <div id="panel-inner">
+
+        <div id="panel-header">
+          <button id="panel-close" aria-label="close panel">×</button>
+          <div id="panel-filename"></div>
+          <div id="panel-filepath"></div>
+          <div id="panel-badges"></div>
+        </div>
+
+        <div id="panel-stats-row"></div>
+
+        <div class="panel-section" id="panel-connections-section">
+          <div class="panel-section-label">// connections</div>
+          <div class="panel-section-body">
+            <div id="panel-connections"></div>
+          </div>
+        </div>
+
+        <div class="panel-section" id="panel-symbols-section">
+          <div class="panel-section-label">// symbols</div>
+          <div class="panel-section-body">
+            <div id="panel-symbols"></div>
+          </div>
+        </div>
+
+        <div class="panel-section" id="panel-why-section">
+          <div class="panel-section-label">// why connected</div>
+          <div class="panel-section-body">
+            <div id="panel-why"></div>
+          </div>
+        </div>
+
+        <div class="panel-section" id="panel-code-section">
+          <div class="panel-section-label">// source</div>
+          <div class="panel-section-body">
+            <div id="panel-code-wrap">
+              <pre id="panel-code"><code id="panel-code-content"></code></pre>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ═══ STATUS BAR ═══ -->
+  <div id="status-bar">
+    <span id="status-text">ready</span>
+    <span id="status-right">// codebase.explorer</span>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+
+</html>
