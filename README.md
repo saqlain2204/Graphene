@@ -1,3 +1,6 @@
+
+
+
 <div align="center">
 
 <img src="./assets/logo.svg" alt="Graphene Logo" width="180">
@@ -24,6 +27,8 @@ Graphene is a browser-based tool that turns any codebase into an interactive dep
 No accounts. No installs. No code leaves your machine.
 
 It is useful when you inherit an unfamiliar codebase, join a new team, or return to a project after a long break and need to get oriented fast.
+
+https://github.com/user-attachments/assets/e3f458c7-39bb-479b-9279-8d9dfc99a4dd
 
 ---
 
